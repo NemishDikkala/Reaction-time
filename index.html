@@ -81,7 +81,14 @@
             <div id="moving-circle" class="circle"></div>
         </div>
         <div id="controls">
-            <!-- Add your control elements here -->
+            <label>Moving Ring Speed: <input type="range" id="speed-slider" min="1" max="10" value="5"></label>
+            <label>Moving Ring Size: <input type="range" id="size-slider" min="50" max="100" value="60"></label>
+            <label>Moving Ring Thickness: <input type="range" id="thickness-slider" min="1" max="10" value="5"></label>
+            <label>Fixed Circle Size: <input type="range" id="fixed-size-slider" min="30" max="70" value="50"></label>
+            <label>Moving Ring Color: <input type="color" id="movcolor-picker" value="#000000"></label>
+            <label>Fixed Ring Color: <input type="color" id="statcolor-picker" value="#000000"></label>
+            <label>Background Color: <input type="color" id="bgcolor-picker" value="#FFFFFF"></label>
+            <button onclick="resetToDefault()">Reset to Default</button>
         </div>
         <div id="results-table">
             <table id="reaction-times">
@@ -98,29 +105,21 @@
         let gameActive = false;
         const stationaryCircle = document.getElementById('stationary-circle');
         const movingCircle = document.getElementById('moving-circle');
-        const centerY = stationaryCircle.offsetTop + stationaryCircle.offsetHeight / 2;
-        const centerX = stationaryCircle.offsetLeft + stationaryCircle.offsetWidth / 2;
+        const centerY = document.getElementById('game-area').offsetHeight / 2;
+        const speedSlider = document.getElementById('speed-slider');
+        const sizeSlider = document.getElementById('size-slider');
+        const thicknessSlider = document.getElementById('thickness-slider');
+        const fixedSizeSlider = document.getElementById('fixed-size-slider');
+        const movcolorPicker = document.getElementById('movcolor-picker');
+        const statcolorPicker = document.getElementById('statcolor-picker');
+        const bgcolorPicker = document.getElementById('bgcolor-picker');
 
         function startGame() {
-            movingCircle.style.display = 'block';
-            resetCirclePosition();
+            let speed = 10000 / speedSlider.value;
+            movingCircle.style.transition = 'top ' + speed + 'ms linear';
+            movingCircle.style.top = centerY - movingCircle.offsetHeight / 2 + 'px';
             gameActive = true;
-            alignmentTime = new Date().getTime() + 3000; // 3 seconds delay
-            setTimeout(() => {
-                moveCircle();
-            }, 3000);
-        }
-
-        function resetCirclePosition() {
-            movingCircle.style.top = '0px';
-            movingCircle.style.left = '50%';
-            movingCircle.style.transform = 'translateX(-50%)';
-        }
-
-        function moveCircle() {
-            movingCircle.style.transition = 'top 2s linear, left 2s linear';
-            movingCircle.style.top = (centerY - movingCircle.offsetHeight / 2) + 'px';
-            movingCircle.style.left = centerX + 'px';
+            alignmentTime = new Date().getTime() + speed;
         }
 
         function recordReactionTime() {
@@ -135,15 +134,25 @@
         }
 
         function resetGame() {
-            movingCircle.style.display = 'none';
+            movingCircle.style.top = '-100px'; // Reset to starting position
             gameActive = false;
-            resetCirclePosition();
+        }
+
+        function resetToDefault() {
+            speedSlider.value = "5";
+            sizeSlider.value = "60";
+            thicknessSlider.value = "5";
+            fixedSizeSlider.value = "50";
+            movcolorPicker.value = "#000000";
+            statcolorPicker.value = "#000000";
+            bgcolorPicker.value = "#FFFFFF";
+            updateSettings();
         }
 
         function updateDisplay() {
             let tableHtml = '<tr><th>#</th><th>Time (ms)</th><th>Accuracy (%)</th></tr>';
             reactionTimes.forEach((time, index) => {
-                tableHtml += `<tr><td>${index + 1}</td><td>${time}</td><td>${accuracies[index].toFixed(2)}%</td></tr>`;
+                tableHtml += '<tr><td>' + (index + 1) + '</td><td>' + time + '</td><td>' + accuracies[index].toFixed(2) + '%</td></tr>';
             });
             document.getElementById('reaction-times').innerHTML = tableHtml;
 
@@ -152,27 +161,44 @@
             document.getElementById('average-results').innerHTML = 'Average Time: ' + averageTime.toFixed(2) + ' ms, Average Accuracy: ' + averageAccuracy.toFixed(2) + '%';
         }
 
-        // Event listener for both key press and touch event
-        function handleInputEvent() {
+        function updateSettings() {
+            movingCircle.style.width = sizeSlider.value + 'px';
+            movingCircle.style.height = sizeSlider.value + 'px';
+            movingCircle.style.borderWidth = thicknessSlider.value + 'px';
+            stationaryCircle.style.width = fixedSizeSlider.value + 'px';
+            stationaryCircle.style.height = fixedSizeSlider.value + 'px';
+            movingCircle.style.borderColor = movcolorPicker.value;
+            stationaryCircle.style.backgroundColor = statcolorPicker.value;
+            document.getElementById('game-area').style.backgroundColor = bgcolorPicker.value;
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                if (!gameActive) {
+                    startGame();
+                } else {
+                    recordReactionTime();
+                }
+            }
+        });
+
+        document.addEventListener('touchstart', function(event) {
             if (!gameActive) {
                 startGame();
             } else {
                 recordReactionTime();
             }
-        }
-
-        document.addEventListener('keydown', function(event) {
-            if (event.code === 'Space') {
-                handleInputEvent();
-            }
-        });
-
-        document.addEventListener('touchstart', function(event) {
-            handleInputEvent();
         }, { passive: true });
 
-        // Reset to default settings on page load
-        resetGame();
+        speedSlider.addEventListener('input', updateSettings);
+        sizeSlider.addEventListener('input', updateSettings);
+        thicknessSlider.addEventListener('input', updateSettings);
+        fixedSizeSlider.addEventListener('input', updateSettings);
+        movcolorPicker.addEventListener('input', updateSettings);
+        statcolorPicker.addEventListener('input', updateSettings);
+        bgcolorPicker.addEventListener('input', updateSettings);
+
+        resetToDefault(); // Initialize with default settings
     </script>
 </body>
 </html>
