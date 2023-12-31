@@ -37,9 +37,8 @@
             width: 60px;
             height: 60px;
             border: 5px solid black;
-            left: 50%;
-            top: 0%;
-            transform: translateX(-50%);
+            position: absolute;
+            display: none;
         }
         #controls {
             display: flex;
@@ -60,9 +59,9 @@
             margin-right: auto;
         }
         th, td {
+            border: 1px solid black;
             padding: 5px;
             text-align: left;
-            border: 1px solid black;
         }
     </style>
 </head>
@@ -105,6 +104,7 @@
         let gameActive = false;
         const stationaryCircle = document.getElementById('stationary-circle');
         const movingCircle = document.getElementById('moving-circle');
+        const gameArea = document.getElementById('game-area');
         const speedSlider = document.getElementById('speed-slider');
         const sizeSlider = document.getElementById('size-slider');
         const thicknessSlider = document.getElementById('thickness-slider');
@@ -113,27 +113,33 @@
         const statcolorPicker = document.getElementById('statcolor-picker');
         const bgcolorPicker = document.getElementById('bgcolor-picker');
 
-        function updateCirclePosition() {
-            const rect = stationaryCircle.getBoundingClientRect();
+        function startGame() {
             movingCircle.style.width = sizeSlider.value + 'px';
             movingCircle.style.height = sizeSlider.value + 'px';
             movingCircle.style.borderWidth = thicknessSlider.value + 'px';
-            movingCircle.style.top = (rect.top + rect.height/2 - movingCircle.offsetHeight/2) + 'px';
-            movingCircle.style.left = (rect.left + rect.width/2 - movingCircle.offsetWidth/2) + 'px';
-        }
+            movingCircle.style.borderColor = movcolorPicker.value;
 
-        function startGame() {
-            updateCirclePosition();
+            stationaryCircle.style.width = fixedSizeSlider.value + 'px';
+            stationaryCircle.style.height = fixedSizeSlider.value + 'px';
+            stationaryCircle.style.backgroundColor = statcolorPicker.value;
+
+            gameArea.style.backgroundColor = bgcolorPicker.value;
+
+            let speed = 10000 / speedSlider.value;
+            movingCircle.style.transition = 'top ' + speed + 'ms linear';
             movingCircle.style.display = 'block';
+            movingCircle.style.top = (stationaryCircle.offsetTop + stationaryCircle.offsetHeight / 2 - movingCircle.offsetHeight / 2) + 'px';
+            movingCircle.style.left = (stationaryCircle.offsetLeft + stationaryCircle.offsetWidth / 2 - movingCircle.offsetWidth / 2) + 'px';
+
             gameActive = true;
-            alignmentTime = new Date().getTime() + 3000; // 3 seconds delay
+            alignmentTime = new Date().getTime() + speed;
         }
 
         function recordReactionTime() {
             if (!gameActive) return;
             endTime = new Date().getTime();
             let reactionTime = Math.max(0, endTime - alignmentTime);
-            let accuracy = 100; // Placeholder for accuracy calculation
+            let accuracy = 100 - Math.abs(stationaryCircle.offsetTop + stationaryCircle.offsetHeight / 2 - movingCircle.offsetTop - movingCircle.offsetHeight / 2) / stationaryCircle.offsetHeight * 100;
             reactionTimes.push(reactionTime);
             accuracies.push(accuracy);
             updateDisplay();
@@ -142,6 +148,7 @@
 
         function resetGame() {
             movingCircle.style.display = 'none';
+            movingCircle.style.top = '-100px';
             gameActive = false;
         }
 
@@ -153,22 +160,19 @@
             movcolorPicker.value = "#000000";
             statcolorPicker.value = "#000000";
             bgcolorPicker.value = "#FFFFFF";
-            updateSettings();
+            startGame();
         }
 
         function updateDisplay() {
             let tableHtml = '<tr><th>#</th><th>Time (ms)</th><th>Accuracy (%)</th></tr>';
             reactionTimes.forEach((time, index) => {
-                tableHtml += `<tr><td>${index + 1}</td><td>${time}</td><td>${accuracies[index].toFixed(2)}%</td></tr>`;
+                tableHtml += '<tr><td>' + (index + 1) + '</td><td>' + time + '</td><td>' + accuracies[index].toFixed(2) + '%</td></tr>';
             });
             document.getElementById('reaction-times').innerHTML = tableHtml;
-        }
-
-        function updateSettings() {
-            stationaryCircle.style.width = fixedSizeSlider.value + 'px';
-            stationaryCircle.style.height = fixedSizeSlider.value + 'px';
-            stationaryCircle.style.backgroundColor = statcolorPicker.value;
-            document.getElementById('game-area').style.backgroundColor = bgcolorPicker.value;
+            
+            let averageTime = reactionTimes.length > 0 ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length : 0;
+            let averageAccuracy = accuracies.length > 0 ? accuracies.reduce((a, b) => a + b, 0) / accuracies.length : 0;
+            document.getElementById('average-results').innerHTML = 'Average Time: ' + averageTime.toFixed(2) + ' ms, Average Accuracy: ' + averageAccuracy.toFixed(2) + '%';
         }
 
         document.addEventListener('keydown', function(event) {
@@ -187,15 +191,8 @@
             } else {
                 recordReactionTime();
             }
-        }, { passive: true });
-
-        speedSlider.addEventListener('input', updateSettings);
-        sizeSlider.addEventListener('input', updateSettings);
-        thicknessSlider.addEventListener('input', updateSettings);
-        fixedSizeSlider.addEventListener('input', updateSettings);
-        movcolorPicker.addEventListener('input', updateSettings);
-        statcolorPicker.addEventListener('input', updateSettings);
-        bgcolorPicker.addEventListener('input', updateSettings);
+            event.preventDefault();
+        }, { passive: false });
 
         resetToDefault(); // Initialize with default settings
     </script>
